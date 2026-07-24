@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quantum Tic-Tac-Toe - Beat me if you can</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&amp;family=Orbitron:wght@700;900&amp;display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    /*<![CDATA[*/
+    :root {
+      --bg-color: #060913;
+      --card-bg: rgba(18, 24, 38, 0.85);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary-x: #00f2fe;
+      --shadow-x: rgba(0, 242, 254, 0.6);
+      --primary-o: #ff0844;
+      --shadow-o: rgba(255, 8, 68, 0.6);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #8b5cf6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-color) 100%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, var(--primary-x), var(--primary-o));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      text-shadow: 0 0 25px rgba(139, 92, 246, 0.5);
+    }
+
+    .tagline {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-style: italic;
+    }
+
+    .mode-selector {
+      display: flex;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      width: 100%;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .mode-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+    }
+
+    .difficulty-selector {
+      display: flex;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      width: 100%;
+      gap: 4px;
+    }
+
+    .diff-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .diff-btn.active {
+      background: #0284c7;
+      color: #fff;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      border-radius: 14px;
+      padding: 10px 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    .score-box {
+      text-align: center;
+    }
+
+    .score-box .label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-box .val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    .score-x { color: var(--primary-x); }
+    .score-o { color: var(--primary-o); }
+    .score-draw { color: #facc15; }
+
+    .ai-dialogue {
+      width: 100%;
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px dashed var(--accent);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      color: #e2e8f0;
+      text-align: center;
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .status-badge {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 18px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: center;
+      width: 100%;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(16px);
+      padding: 12px;
+      border-radius: 20px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .cell {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.3rem;
+      font-weight: 900;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cell:hover:not(.disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .cell.x {
+      color: var(--primary-x);
+      text-shadow: 0 0 15px var(--shadow-x);
+      animation: popIn 0.3s ease-out;
+    }
+
+    .cell.o {
+      color: var(--primary-o);
+      text-shadow: 0 0 15px var(--shadow-o);
+      animation: popIn 0.3s ease-out;
+    }
+
+    .cell.winning {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.4), rgba(255, 8, 68, 0.4));
+      border-color: #fff;
+      animation: superPulse 0.8s infinite alternate ease-in-out;
+      box-shadow: 0 0 25px #fff;
+    }
+
+    .cell.disabled {
+      cursor: not-allowed;
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 11px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    .reset-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    .footer-credit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .footer-credit span {
+      color: var(--primary-x);
+      font-weight: 600;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes superPulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.08); filter: brightness(1.4); }
+    }
+    /*]]>*/
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Quantum Tic-Tac-Toe</h1>
+      <div class="tagline">Beat me if you can 🤖</div>
+    </header>
+
+    <div class="mode-selector">
+      <button class="mode-btn active" onclick="setGameMode('ai', event)">🤖 AI মোড (Solo)</button>
+      <button class="mode-btn" onclick="setGameMode('pvp', event)">👥 ফ্রেন্ডস মোড (2 Player)</button>
+    </div>
+
+    <div class="difficulty-selector" id="diffContainer">
+      <button class="diff-btn active" onclick="setDifficulty('easy', event)">Easy</button>
+      <button class="diff-btn" onclick="setDifficulty('medium', event)">Medium</button>
+      <button class="diff-btn" onclick="setDifficulty('hard', event)">Hard</button>
+    </div>
+
+    <div class="scoreboard">
+      <div class="score-box">
+        <div class="label" id="labelX">PLAYER X</div>
+        <div class="val score-x" id="scoreX">0</div>
+      </div>
+      <div class="score-box">
+        <div class="label">DRAWS</div>
+        <div class="val score-draw" id="scoreDraw">0</div>
+      </div>
+      <div class="score-box">
+        <div class="label" id="labelO">AI (O)</div>
+        <div class="val score-o" id="scoreO">0</div>
+      </div>
+    </div>
+
+    <div class="ai-dialogue" id="aiDialogue">
+      <span>💬</span> <span id="tauntText">"খেলার জন্য প্রস্তুত হোন! চাল দিন।"</span>
+    </div>
+
+    <div class="status-badge" id="statusText">Player X এর চাল</div>
+
+    <div class="board" id="board">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">নতুন রাউন্ড শুরু করুন</button>
+    
+    <div class="footer-credit">
+      Developed by <span>SK Shifat</span>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    //<![CDATA[
+    let boardState = ["", "", "", "", "", "", "", "", ""];
+    let isGameActive = true;
+    let gameMode = "ai"; 
+    let currentTurn = "X"; 
+    let currentDifficulty = "easy";
+
+    let scores = { x: 0, o: 0, draw: 0 };
+
+    const winningConditions = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    let audioCtx = null;
+    
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+    
+    function playSound(freq, duration, type = "sine") {
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    const cells = document.querySelectorAll('.cell');
+    const statusText = document.getElementById('statusText');
+    const tauntText = document.getElementById('tauntText');
+
+    function setGameMode(mode, evt) {
+      gameMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      if(evt) evt.target.classList.add('active');
+
+      document.getElementById('diffContainer').style.display = (mode === 'ai') ? 'flex' : 'none';
+      document.getElementById('labelO').innerText = (mode === 'ai') ? 'AI (O)' : 'PLAYER O';
+      
+      tauntText.innerText = mode === 'ai' ? `"মেশিনের সাথে লড়াই করতে প্রস্তুত হোন!"` : `"বন্ধুর সাথে মুখোমুখি লড়াই শুরু হলো!"`;
+      resetGame();
+    }
+
+    function setDifficulty(diff, evt) {
+      currentDifficulty = diff;
+      document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('active'));
+      if(evt) evt.target.classList.add('active');
+      resetGame();
+    }
+
+    cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+
+    function handleCellClick(e) {
+      const clickedCell = e.target;
+      const index = parseInt(clickedCell.getAttribute('data-index'));
+
+      if (boardState[index] !== "" || !isGameActive) return;
+
+      playSound(520, 0.1, "triangle");
+      makeMove(index, currentTurn);
+
+      const winCombo = getWinCombo(currentTurn);
+      if (winCombo) {
+        triggerVictoryEffects(winCombo, currentTurn);
+        return;
+      }
+
+      if (boardState.every(cell => cell !== "")) {
+        statusText.innerText = "🤝 ম্যাচ ড্র হয়েছে!";
+        tauntText.innerText = `"কারো সাথেই জিততে পারলেন না! দারুণ লড়াই।"`;
+        scores.draw++;
+        updateScoreboard();
+        isGameActive = false;
+        return;
+      }
+
+      if (gameMode === 'pvp') {
+        currentTurn = currentTurn === "X" ? "O" : "X";
+        statusText.innerText = `Player ${currentTurn} এর চাল`;
+        tauntText.innerText = `পালা করে খেলুন! এখন Player ${currentTurn}-এর পালা।`;
+      } else {
+        isGameActive = false;
+        statusText.innerText = "⚡ AI চাল চিন্তা করছে...";
+        setTimeout(() => {
+          makeAiMove();
+        }, 400);
+      }
+    }
+
+    function makeMove(index, symbol) {
+      boardState[index] = symbol;
+      const cell = cells[index];
+      cell.innerText = symbol;
+      cell.classList.add(symbol.toLowerCase(), 'disabled');
+    }
+
+    function triggerVictoryEffects(winCombo, winner) {
+      highlightWin(winCombo);
+      isGameActive = false;
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.5 },
+          colors: ['#00f2fe', '#ff0844', '#facc15', '#a855f7']
+        });
+      }
+
+      playSound(900, 0.5, "sine");
+
+      if (gameMode === 'pvp') {
+        statusText.innerText = `🏆 Player ${winner} জয়ী হয়েছে!`;
+        tauntText.innerText = `অভিনন্দন Player ${winner}! চমৎকার জয়ে ম্যাচ জিতে নিলেন।`;
+        if (winner === 'X') scores.x++; else scores.o++;
+      } else {
+        if (winner === 'X') {
+          statusText.innerText = "🏆 অসাধারণ! আপনি জিতে গেছেন!";
+          tauntText.innerText = `"মানতেই হলো, আপনি আমাকে হারিয়ে দিলেন!"`;
+          scores.x++;
+        } else {
+          statusText.innerText = "💀 AI জিতে গেছে!";
+          tauntText.innerText = `"মেশিনকে হারানো অত সহজ নয়, বন্ধু!"`;
+          scores.o++;
+        }
+      }
+      updateScoreboard();
+    }
+
+    function makeAiMove() {
+      const emptyIndices = boardState
+        .map((val, idx) => val === "" ? idx : null)
+        .filter(val => val !== null);
+
+      let aiChoice;
+      let aiTaunt = "দেখা যাক আপনার ডিফেন্স কতক্ষণ টিকে!";
+
+      if (currentDifficulty === "easy" && Math.random() < 0.5) {
+        aiChoice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      } else if (currentDifficulty === "medium" && Math.random() < 0.25) {
+        aiChoice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      } else {
+        aiChoice = getBestMinimaxMove();
+      }
+
+      if (aiChoice === undefined || !emptyIndices.includes(aiChoice)) {
+        aiChoice = emptyIndices[0];
+      }
+
+      tauntText.innerText = `"${aiTaunt}"`;
+      playSound(280, 0.15, "sawtooth");
+      makeMove(aiChoice, "O");
+
+      const winCombo = getWinCombo("O");
+      if (winCombo) {
+        triggerVictoryEffects(winCombo, "O");
+        return;
+      }
+
+      if (boardState.every(cell => cell !== "")) {
+        statusText.innerText = "🤝 ম্যাচ ড্র হয়েছে!";
+        scores.draw++;
+        updateScoreboard();
+        isGameActive = false;
+        return;
+      }
+
+      isGameActive = true;
+      statusText.innerText = "আপনার চাল (X)";
+    }
+
+    function getWinCombo(symbol) {
+      return winningConditions.find(condition => {
+        return condition.every(index => boardState[index] === symbol);
+      });
+    }
+
+    function highlightWin(combo) {
+      combo.forEach(idx => cells[idx].classList.add('winning'));
+    }
+
+    function updateScoreboard() {
+      document.getElementById('scoreX').innerText = scores.x;
+      document.getElementById('scoreO').innerText = scores.o;
+      document.getElementById('scoreDraw').innerText = scores.draw;
+    }
+
+    function getBestMinimaxMove() {
+      let bestScore = -Infinity;
+      let move;
+      for (let i = 0; i < 9; i++) {
+        if (boardState[i] === "") {
+          boardState[i] = "O";
+          let score = minimax(boardState, 0, false);
+          boardState[i] = "";
+          if (score > bestScore) {
+            bestScore = score;
+            move = i;
+          }
+        }
+      }
+      return move;
+    }
+
+    function minimax(board, depth, isMaximizing) {
+      if (getWinCombo("O")) return 10 - depth;
+      if (getWinCombo("X")) return depth - 10;
+      if (board.every(cell => cell !== "")) return 0;
+
+      if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === "") {
+            board[i] = "O";
+            let score = minimax(board, depth + 1, false);
+            board[i] = "";
+            bestScore = Math.max(score, bestScore);
+          }
+        }
+        return bestScore;
+      } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === "") {
+            board[i] = "X";
+            let score = minimax(board, depth + 1, true);
+            board[i] = "";
+            bestScore = Math.min(score, bestScore);
+          }
+        }
+        return bestScore;
+      }
+    }
+
+    function resetGame() {
+      boardState = ["", "", "", "", "", "", "", "", ""];
+      isGameActive = true;
+      currentTurn = "X";
+      statusText.innerText = gameMode === 'pvp' ? "Player X এর চাল" : "আপনার চাল (X)";
+      tauntText.innerText = gameMode === 'ai' ? `"নতুন রাউন্ড শুরু হয়েছে! দেখা যাক কে জেতে।"` : `"বন্ধুর সাথে নতুন ম্যাচ শুরু হলো!"`;
+      
+      cells.forEach(cell => {
+        cell.innerText = "";
+        cell.className = "cell";
+      });
+    }
+    //]]>
+  </script>
+</body>
+</html>
